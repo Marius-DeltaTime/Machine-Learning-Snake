@@ -23,7 +23,7 @@ public class ScoreManager : MonoBehaviour
 
     public void IncreaseScore(float amount)
     {
-        score += amount;
+        score = amount;
         UpdateScoreText();
     }
 

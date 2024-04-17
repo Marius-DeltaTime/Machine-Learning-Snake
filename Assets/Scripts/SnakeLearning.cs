@@ -1,7 +1,10 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class SnakeLearning : MonoBehaviour
 {
+    public static SnakeLearning instance;
+
     public enum Action { DoNothing, TurnRight, TurnLeft }
 
     public float foodReward = 10f;
@@ -11,6 +14,15 @@ public class SnakeLearning : MonoBehaviour
     private float startTime, lastRewardTime;
     private List<Transform> segmentTransforms = new List<Transform>();
     private Transform headTransform, foodTransform;
+    private float reward;
+
+    void Awake()
+    {
+        if (instance == null)
+            instance = this;
+        else if (instance != this)
+            Destroy(gameObject);
+    }
 
     void GetSnakeHeadPosition()
     {
@@ -53,14 +65,17 @@ public class SnakeLearning : MonoBehaviour
         if (timeSinceLastReward >= 1f)
         {
             OnSurvival();
-            ScoreManager.instance.IncreaseScore(survivalReward);
             lastRewardTime = Time.time;
         }
 
         if (SnakeController.instance.canMove)
         {
             Action nextAction = GetNextAction();
-            ExecuteAction(nextAction);         
+            ExecuteAction(nextAction);
+            GetSegmentPositions();
+            GetSnakeHeadPosition();
+
+            QLearning.instance.AddState(headTransform, segmentTransforms, foodTransform);
         }
     }
 
@@ -81,26 +96,6 @@ public class SnakeLearning : MonoBehaviour
             return Action.TurnLeft;
         }
     }
-    /*
-    Action SelectAction(State currentState)
-    {
-        // Choose action with highest Q-value for the current state
-        Action bestAction = null;
-        float maxQValue = float.MinValue;
-
-        foreach (var action in GetPossibleActions())
-        {
-            float qValue = QTable[currentState][action];
-            if (qValue > maxQValue)
-            {
-                maxQValue = qValue;
-                bestAction = action;
-            }
-        }
-
-        return bestAction;
-    }
-    */
 
     void ExecuteAction(Action action)
     {
@@ -119,21 +114,19 @@ public class SnakeLearning : MonoBehaviour
 
     public void OnFoodEaten()
     {
-        Reward(foodReward);
+        GetFoodPosition();
+        reward += foodReward;
+        ScoreManager.instance.IncreaseScore(reward);
     }
 
     public void OnSurvival()
     {
-        Reward(survivalReward);
+        reward += survivalReward;
+        ScoreManager.instance.IncreaseScore(reward);
     }
 
     public void OnCollisionWithBody()
     {
-        Reward(collisionPenalty);
-    }
-
-    void Reward(float rewardValue)
-    {
-
+        reward += collisionPenalty;
     }
 }

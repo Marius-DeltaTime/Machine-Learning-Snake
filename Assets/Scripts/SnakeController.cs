@@ -137,7 +137,7 @@ public class SnakeController : MonoBehaviour
             GameManager.instance.SpawnFood();
             ScoreManager.instance.IncreaseScore(10);
             AddSegment();
-            Invoke("UpdateFoodPosition", 0.0001f);
+            //Invoke("UpdateFoodPosition", 0.0001f);
         }
     }
 
@@ -188,7 +188,8 @@ public class SnakeController : MonoBehaviour
 
     private void UpdateFoodPosition()
     {
-        SnakeBot.instance.UpdateSnakeHeadAndFood();
+        //SnakeBot.instance.UpdateSnakeHeadAndFood();
+        SnakeLearning.instance.OnFoodEaten();
     }
 
     private Bounds GetBounds(GameObject obj)

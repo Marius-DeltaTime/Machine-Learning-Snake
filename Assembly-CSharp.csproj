@@ -61,6 +61,7 @@
     <Compile Include="Assets\Scripts\TestingScript.cs" />
     <Compile Include="Assets\Scripts\SnakeBot.cs" />
     <Compile Include="Assets\Scripts\SnakeLearning.cs" />
+    <Compile Include="Assets\Scripts\QLearning.cs" />
     <Compile Include="Assets\Scripts\SnakeController.cs" />
     <Compile Include="Assets\Scripts\ScoreManager.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
