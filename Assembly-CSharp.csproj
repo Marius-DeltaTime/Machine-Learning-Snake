@@ -59,11 +59,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Assets\Scripts\TestingScript.cs" />
+    <Compile Include="Assets\Scripts\SnakeBot.cs" />
+    <Compile Include="Assets\Scripts\SnakeLearning.cs" />
     <Compile Include="Assets\Scripts\SnakeController.cs" />
     <Compile Include="Assets\Scripts\ScoreManager.cs" />
-    <Compile Include="Assets\SnakeAI.cs" />
     <Compile Include="Assets\Scripts\GameManager.cs" />
-    <Compile Include="Assets\Scripts\SnakeAI.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />

@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Food
   - Snake_Body
+  - Snake_Head
   layers:
   - Default
   - TransparentFX

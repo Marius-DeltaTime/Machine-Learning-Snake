@@ -1,8 +1,10 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class SnakeController : MonoBehaviour
 {
+    public static SnakeController instance;
+
     public float rotationAngle = 90f;
     public GameObject foodPrefab;
     public GameObject segmentPrefab;
@@ -11,9 +13,17 @@ public class SnakeController : MonoBehaviour
     private Vector2 moveDirection = Vector2.up;
     private List<Transform> segments = new List<Transform>();
     private Quaternion headRotation = Quaternion.identity;
-    private bool canMove = true;
+    public bool canMove = true;
 
     public float moveDelay = 0.1f;
+
+    void Awake()
+    {
+        if (instance == null)
+            instance = this;
+        else if (instance != this)
+            Destroy(gameObject);
+    }
 
     private void Start()
     {
@@ -96,26 +106,30 @@ public class SnakeController : MonoBehaviour
 
     private void HandleInput()
     {
-        if (Input.GetKeyDown(KeyCode.RightArrow))
+        if (canMove && (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.LeftArrow)))
         {
-            RotateSnakeClockwise();
-        }
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            RotateSnakeCounterClockwise();
+            if (Input.GetKeyDown(KeyCode.RightArrow))
+            {
+                RotateSnakeClockwise();
+            }
+            else if (Input.GetKeyDown(KeyCode.LeftArrow))
+            {
+                RotateSnakeCounterClockwise();
+            }
         }
     }
+
 
     private void EnableMovement()
     {
         canMove = true;
     }
 
-    private void OnTriggerEnter2D(Collider2D other)
+    public void OnTriggerEnter2D(Collider2D other)
     {
         if (other.CompareTag("Snake_Body"))
         {
-            Debug.Log("Game Over: Head collided with body segment!");
+            GameManager.instance.EndGame();
         }
         else if (other.CompareTag("Food"))
         {
@@ -123,17 +137,18 @@ public class SnakeController : MonoBehaviour
             GameManager.instance.SpawnFood();
             ScoreManager.instance.IncreaseScore(10);
             AddSegment();
+            Invoke("UpdateFoodPosition", 0.0001f);
         }
     }
 
-    private void RotateSnakeClockwise()
+    public void RotateSnakeClockwise()
     {
         headRotation *= Quaternion.Euler(0, 0, -rotationAngle);
         transform.Rotate(Vector3.forward, -rotationAngle);
         moveDirection = Quaternion.Euler(0, 0, -rotationAngle) * moveDirection;
     }
 
-    private void RotateSnakeCounterClockwise()
+    public void RotateSnakeCounterClockwise()
     {
         headRotation *= Quaternion.Euler(0, 0, rotationAngle);
         transform.Rotate(Vector3.forward, rotationAngle);
@@ -167,6 +182,13 @@ public class SnakeController : MonoBehaviour
 
         newSegment.transform.up = -transform.up;
         segments.Add(newSegment.transform);
+
+        GameManager.instance.UpdateSnakeSegments(segments.ToArray());
+    }
+
+    private void UpdateFoodPosition()
+    {
+        SnakeBot.instance.UpdateSnakeHeadAndFood();
     }
 
     private Bounds GetBounds(GameObject obj)
