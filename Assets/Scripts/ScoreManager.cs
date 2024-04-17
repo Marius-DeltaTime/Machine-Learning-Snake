@@ -6,7 +6,7 @@ public class ScoreManager : MonoBehaviour
     public static ScoreManager instance;
 
     public TMP_Text scoreText;
-    private int score = 0;
+    private float score = 0f;
 
     void Awake()
     {
@@ -21,7 +21,7 @@ public class ScoreManager : MonoBehaviour
         UpdateScoreText();
     }
 
-    public void IncreaseScore(int amount)
+    public void IncreaseScore(float amount)
     {
         score += amount;
         UpdateScoreText();
