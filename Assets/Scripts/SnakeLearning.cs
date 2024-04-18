@@ -1,11 +1,20 @@
 using UnityEngine;
 using System.Collections.Generic;
+using static SnakeLearning;
+using System;
+using Sirenix.OdinInspector;
+
 
 public class SnakeLearning : MonoBehaviour
 {
+    [ShowInInspector]
+    [ReadOnly]
+    [FoldoutGroup("Q-Table")]
+    public Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>> qTableRef = new Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>>();
+
     public static SnakeLearning instance;
 
-    public enum Action { DoNothing, TurnRight, TurnLeft }
+    public enum SnakeAction { DoNothing, TurnRight, TurnLeft }
 
     public float foodReward = 10f;
     public float survivalReward = 0.1f;
@@ -15,15 +24,27 @@ public class SnakeLearning : MonoBehaviour
     private List<Transform> segmentTransforms = new List<Transform>();
     private Transform headTransform, foodTransform;
     private float reward;
+    private State thisState, nextState;
+    private SnakeAction thisAction, nextAction;
+    private uint foodEaten;
+    private long timeScore;
 
     void Awake()
     {
+        qTableRef = QLearning.qTable;
         if (instance == null)
             instance = this;
         else if (instance != this)
             Destroy(gameObject);
     }
 
+    void CalculateTimeScore()
+    {
+        float timeElapsed = Time.time - startTime;
+        float timeSinceLastReward = Time.time - lastRewardTime;
+        long millisecondsAlive = (long)(timeElapsed * 1000);
+        timeScore = (long)(millisecondsAlive * 0.01);
+    }
     void GetSnakeHeadPosition()
     {
         GameObject snakeHead = GameObject.FindGameObjectWithTag("Snake_Head");
@@ -53,76 +74,137 @@ public class SnakeLearning : MonoBehaviour
 
     void Start()
     {
+        QLearningManager.Instance.QLearningInstance.InitializeQTable();
+
         startTime = Time.time;
         lastRewardTime = startTime;
+
+        GetSegmentPositions();
+        GetSnakeHeadPosition();
+        GetFoodPosition();
+
+        QLearningManager.Instance.QLearningInstance.GetState(headTransform, segmentTransforms, foodTransform);
     }
 
     void Update()
     {
-        float timeElapsed = Time.time - startTime;
-        float timeSinceLastReward = Time.time - lastRewardTime;
-
-        if (timeSinceLastReward >= 1f)
-        {
-            OnSurvival();
-            lastRewardTime = Time.time;
-        }
+        CalculateTimeScore();
 
         if (SnakeController.instance.canMove)
         {
-            Action nextAction = GetNextAction();
-            ExecuteAction(nextAction);
             GetSegmentPositions();
             GetSnakeHeadPosition();
+            GetFoodPosition();       
 
-            QLearning.instance.AddState(headTransform, segmentTransforms, foodTransform);
+            thisState = QLearningManager.Instance.QLearningInstance.GetState(headTransform, segmentTransforms, foodTransform);
+
+            if (QLearning.qTable.ContainsKey(thisState))
+            {
+                thisAction = GetAction(thisState);
+
+                ExecuteAction(thisAction);
+
+                nextState = QLearningManager.Instance.QLearningInstance.SimulateActionAndGetNextState(thisState, thisAction);
+                CalculateReward(thisState);
+
+                QLearningManager.Instance.QLearningInstance.UpdateQValue(thisState, thisAction, reward, nextState, 1.5f, 1.7f);
+            }
+            else
+            {
+                Debug.LogWarning("Current state not found in Q-table.");
+            }
         }
     }
 
-    Action GetNextAction()
+
+    SnakeAction GetAction(State state)
     {
-        float randomValue = Random.value;
+        SnakeAction bestAction = SnakeAction.DoNothing;
+        float bestQValue = float.MinValue;
 
-        if (randomValue < 0.33f)
+        if (QLearning.qTable.ContainsKey(state))
         {
-            return Action.DoNothing;
+            foreach (var action in Enum.GetValues(typeof(SnakeAction)))
+            {
+                float qValue = QLearning.qTable[state][(SnakeAction)action];
+                if (qValue > bestQValue)
+                {
+                    bestQValue = qValue;
+                    bestAction = (SnakeAction)action;
+                }
+            }
         }
-        else if (randomValue < 0.66f)
-        {
-            return Action.TurnRight;
-        }
-        else
-        {
-            return Action.TurnLeft;
-        }
+
+        return bestAction;
     }
 
-    void ExecuteAction(Action action)
+
+    void ExecuteAction(SnakeAction action)
     {
         switch (action)
         {
-            case Action.DoNothing:
+            case SnakeAction.DoNothing:
                 break;
-            case Action.TurnRight:
+            case SnakeAction.TurnRight:
                 SnakeController.instance.RotateSnakeClockwise();
                 break;
-            case Action.TurnLeft:
+            case SnakeAction.TurnLeft:
                 SnakeController.instance.RotateSnakeCounterClockwise();
                 break;
         }
     }
 
+    float CalculateDistance(Vector3 position1, Vector3 position2)
+    {
+        return Vector3.Distance(position1, position2);
+    }
+
+    void CalculateReward(State state)
+    {
+        float distanceToFood = CalculateDistance(state.HeadPosition.position, state.FoodPosition.position);
+
+        float maxReward = 1f; 
+        float minReward = 0.0f;       
+        float maxDistance = 10.0f;    
+
+        float currentReward = Mathf.Lerp(maxReward, minReward, distanceToFood / maxDistance);
+
+
+        if (IsCollidingWithBody(state))
+        {
+            reward -= collisionPenalty;
+        }
+
+        if (IsHeadAtFoodPosition(state))
+        {
+            reward += foodReward;
+        }
+
+        reward = currentReward + timeScore;
+    }
+
+    bool IsCollidingWithBody(State state)
+    {
+        foreach (var bodyPos in state.BodyPositions)
+        {
+            if (state.HeadPosition.position == bodyPos.position)
+            {
+                return true; 
+            }
+        }
+        return false; 
+    }
+
+    bool IsHeadAtFoodPosition(State state)
+    {
+        return state.HeadPosition.position == state.FoodPosition.position;
+    }
+
+
     public void OnFoodEaten()
     {
         GetFoodPosition();
-        reward += foodReward;
-        ScoreManager.instance.IncreaseScore(reward);
-    }
-
-    public void OnSurvival()
-    {
-        reward += survivalReward;
-        ScoreManager.instance.IncreaseScore(reward);
+        foodEaten++;
     }
 
     public void OnCollisionWithBody()
