@@ -43,7 +43,7 @@ public class SnakeLearning : MonoBehaviour
         float timeElapsed = Time.time - startTime;
         float timeSinceLastReward = Time.time - lastRewardTime;
         long millisecondsAlive = (long)(timeElapsed * 1000);
-        timeScore = (long)(millisecondsAlive * 0.01);
+        timeScore = (long)(millisecondsAlive * 0.00001);
     }
 
     void GetSnakeHeadPosition()
@@ -66,6 +66,7 @@ public class SnakeLearning : MonoBehaviour
 
     void GetSegmentPositions()
     {
+        segmentTransforms.Clear();
         GameObject[] snakeBodySegments = GameObject.FindGameObjectsWithTag("Snake_Body");
         foreach (GameObject segment in snakeBodySegments)
         {
@@ -74,9 +75,7 @@ public class SnakeLearning : MonoBehaviour
     }
 
     void OnMovementEnabled()
-    {
-        Debug.Log(SnakeController.instance.canMove);
-        
+    {      
             GetSegmentPositions();
             GetSnakeHeadPosition();
             GetFoodPosition();

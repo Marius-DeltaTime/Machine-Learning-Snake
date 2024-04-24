@@ -158,7 +158,7 @@ public class SnakeController : MonoBehaviour
     {
         headRotation *= Quaternion.Euler(0, 0, -rotationAngle);
         transform.Rotate(Vector3.forward, -rotationAngle);
-        moveDirection = Quaternion.Euler(0, 0, -rotationAngle) * moveDirection;
+        moveDirection *= Quaternion.Euler(0, 0, -rotationAngle) * moveDirection;
     }
 
     public void RotateSnakeCounterClockwise()
