@@ -116,7 +116,6 @@ public class SnakeController : MonoBehaviour
         }
     }
 
-
     private void HandleInput()
     {
         if (canMove && (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.LeftArrow)))
@@ -131,7 +130,6 @@ public class SnakeController : MonoBehaviour
             }
         }
     }
-
 
     private void EnableMovement()
     {
