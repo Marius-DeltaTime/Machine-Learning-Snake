@@ -82,12 +82,12 @@ public class QLearning
     public State SimulateActionAndGetNextState(State currentState, SnakeLearning.SnakeAction action)
     {
         List<Transform> copiedBodyPositions = new List<Transform>();
-        foreach (Transform bodyTransform in currentState.BodyPositions)
+        foreach (Transform bodyTransform in currentState.BodyTransforms)
         {
             copiedBodyPositions.Clear();
             copiedBodyPositions.Add(bodyTransform);
         }
-        Transform simulatedHeadTransform = currentState.HeadPosition;
+        Transform simulatedHeadTransform = currentState.HeadTransform;
 
         Quaternion headRotation = simulatedHeadTransform.rotation;
         float rotationAngle = 90f;
@@ -132,7 +132,7 @@ public class QLearning
             copiedBodyPositions[i].position = copiedBodyPositions[i].position + offset;
 
         }
-        State simulatedState = new State(simulatedHeadTransform, copiedBodyPositions, currentState.FoodPosition);
+        State simulatedState = new State(simulatedHeadTransform, copiedBodyPositions, currentState.FoodTransform);
 
         return simulatedState;
     }
@@ -140,15 +140,15 @@ public class QLearning
 
 public class State
 {
-    public Transform HeadPosition { get; private set; }
-    public List<Transform> BodyPositions { get; private set; }
-    public Transform FoodPosition { get; private set; }
+    public Transform HeadTransform { get; private set; }
+    public List<Transform> BodyTransforms { get; private set; }
+    public Transform FoodTransform { get; private set; }
 
-    public State(Transform headPosition, List<Transform> bodyPositions, Transform foodPosition)
+    public State(Transform headTransform, List<Transform> bodyTransforms, Transform foodTransform)
     {
-        HeadPosition = headPosition;
-        BodyPositions = bodyPositions;
-        FoodPosition = foodPosition;
+        HeadTransform = headTransform;
+        BodyTransforms = bodyTransforms;
+        FoodTransform = foodTransform;
     }
 
     public override bool Equals(object obj)
@@ -158,19 +158,19 @@ public class State
 
         State other = (State)obj;
 
-        if (HeadPosition.position != other.HeadPosition.position || HeadPosition.rotation != other.HeadPosition.rotation)
+        if (HeadTransform != other.HeadTransform)
             return false;
 
-        if (BodyPositions.Count != other.BodyPositions.Count)
+        if (BodyTransforms.Count != other.BodyTransforms.Count)
             return false;
 
-        for (int i = 0; i < BodyPositions.Count; i++)
+        for (int i = 0; i < BodyTransforms.Count; i++)
         {
-            if (BodyPositions[i].position != other.BodyPositions[i].position || BodyPositions[i].rotation != other.BodyPositions[i].rotation)
+            if (BodyTransforms[i] != other.BodyTransforms[i])
                 return false;
         }
 
-        if (FoodPosition.position != other.FoodPosition.position || FoodPosition.rotation != other.FoodPosition.rotation)
+        if (FoodTransform != other.FoodTransform)
             return false;
 
         return true;
@@ -182,17 +182,14 @@ public class State
         {
             int hash = 17;
 
-            hash = hash * 23 + HeadPosition.position.GetHashCode();
-            hash = hash * 23 + HeadPosition.rotation.GetHashCode();
+            hash = hash * 23 + HeadTransform.GetHashCode();
 
-            foreach (var bodyPos in BodyPositions)
+            foreach (var bodyPos in BodyTransforms)
             {
-                hash = hash * 23 + bodyPos.position.GetHashCode();
-                hash = hash * 23 + bodyPos.rotation.GetHashCode();
+                hash = hash * 23 + bodyPos.GetHashCode();
             }
 
-            hash = hash * 23 + FoodPosition.position.GetHashCode();
-            hash = hash * 23 + FoodPosition.rotation.GetHashCode();
+            hash = hash * 23 + FoodTransform.GetHashCode();
 
             return hash;
         }

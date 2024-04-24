@@ -108,6 +108,9 @@ public class SnakeLearning : MonoBehaviour
                 CalculateReward(thisState);
 
                 QLearningManager.Instance.QLearningInstance.UpdateQValue(thisState, thisAction, reward, nextState, 1.5f, 1.7f);
+
+                // Debug.Log the qTable contents
+                DebugQTable();
             }
             else
             {
@@ -116,6 +119,19 @@ public class SnakeLearning : MonoBehaviour
         }
     }
 
+    void DebugQTable()
+    {
+        Debug.Log("Q-Table Contents:");
+        foreach (var state in QLearning.qTable)
+        {
+            string stateInfo = state.Key.ToString();
+            foreach (var action in state.Value)
+            {
+                stateInfo += "\n\t" + action.Key.ToString() + ": " + action.Value.ToString();
+            }
+            Debug.Log(stateInfo);
+        }
+    }
 
     SnakeAction GetAction(State state)
     {
@@ -161,7 +177,7 @@ public class SnakeLearning : MonoBehaviour
 
     void CalculateReward(State state)
     {
-        float distanceToFood = CalculateDistance(state.HeadPosition.position, state.FoodPosition.position);
+        float distanceToFood = CalculateDistance(state.HeadTransform.position, state.FoodTransform.position);
 
         float maxReward = 1f; 
         float minReward = 0.0f;       
@@ -185,9 +201,9 @@ public class SnakeLearning : MonoBehaviour
 
     bool IsCollidingWithBody(State state)
     {
-        foreach (var bodyPos in state.BodyPositions)
+        foreach (var bodyPos in state.BodyTransforms)
         {
-            if (state.HeadPosition.position == bodyPos.position)
+            if (state.HeadTransform.position == bodyPos.position)
             {
                 return true; 
             }
@@ -197,7 +213,7 @@ public class SnakeLearning : MonoBehaviour
 
     bool IsHeadAtFoodPosition(State state)
     {
-        return state.HeadPosition.position == state.FoodPosition.position;
+        return state.HeadTransform.position == state.FoodTransform.position;
     }
 
 
