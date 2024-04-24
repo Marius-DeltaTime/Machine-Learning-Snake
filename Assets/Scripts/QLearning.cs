@@ -37,11 +37,32 @@ public class QLearning
 
     public void UpdateQValue(State state, SnakeLearning.SnakeAction action, float reward, State nextState, float alpha, float gamma)
     {
+        string currentStateInfo = "Current State:";
+        currentStateInfo += "\n\tHead Position: " + state.HeadTransform.position;
+        currentStateInfo += "\n\tBody Positions:";
+        foreach (var bodyPos in state.BodyTransforms)
+        {
+            currentStateInfo += "\n\t\t" + bodyPos.position;
+        }
+        currentStateInfo += "\n\tFood Position: " + state.FoodTransform.position;
+
+        string nextStateInfo = "Next State:";
+        nextStateInfo += "\n\tHead Position: " + nextState.HeadTransform.position;
+        nextStateInfo += "\n\tBody Positions:";
+        foreach (var bodyPos in nextState.BodyTransforms)
+        {
+            nextStateInfo += "\n\t\t" + bodyPos.position;
+        }
+        nextStateInfo += "\n\tFood Position: " + nextState.FoodTransform.position;
+
+        Debug.Log("This: " + currentStateInfo + "\nNext: " + nextStateInfo);
+
         float currentQValue = qTable[state][action];
         float maxNextQValue = qTable[nextState].Values.Max();
         float newQValue = currentQValue + alpha * (reward + gamma * maxNextQValue - currentQValue);
         qTable[state][action] = newQValue;
     }
+
 
     public State GetState(Transform head, List<Transform> body, Transform food)
     {

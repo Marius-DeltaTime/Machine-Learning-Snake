@@ -45,6 +45,7 @@ public class SnakeLearning : MonoBehaviour
         long millisecondsAlive = (long)(timeElapsed * 1000);
         timeScore = (long)(millisecondsAlive * 0.01);
     }
+
     void GetSnakeHeadPosition()
     {
         GameObject snakeHead = GameObject.FindGameObjectWithTag("Snake_Head");
@@ -72,8 +73,46 @@ public class SnakeLearning : MonoBehaviour
         }
     }
 
+    void OnMovementEnabled()
+    {
+        Debug.Log(SnakeController.instance.canMove);
+        
+            GetSegmentPositions();
+            GetSnakeHeadPosition();
+            GetFoodPosition();
+
+            thisState = QLearningManager.Instance.QLearningInstance.GetState(headTransform, segmentTransforms, foodTransform);
+
+            if (QLearning.qTable.ContainsKey(thisState))
+            {
+                thisAction = GetAction(thisState);
+
+                ExecuteAction(thisAction);
+
+                nextState = QLearningManager.Instance.QLearningInstance.SimulateActionAndGetNextState(thisState, thisAction);
+
+                CalculateReward(thisState);
+
+                QLearningManager.Instance.QLearningInstance.UpdateQValue(thisState, thisAction, reward, nextState, 1.5f, 1.7f);
+
+                DebugQTable();
+            }
+            else
+            {
+                Debug.LogWarning("Current state not found in Q-table.");
+            }
+        
+    }
+
+    void OnDestroy()
+    {
+        SnakeController.MovementEnabled -= OnMovementEnabled;
+    }
+
     void Start()
     {
+        SnakeController.MovementEnabled += OnMovementEnabled;
+
         QLearningManager.Instance.QLearningInstance.InitializeQTable();
 
         startTime = Time.time;
@@ -89,34 +128,6 @@ public class SnakeLearning : MonoBehaviour
     void Update()
     {
         CalculateTimeScore();
-
-        if (SnakeController.instance.canMove)
-        {
-            GetSegmentPositions();
-            GetSnakeHeadPosition();
-            GetFoodPosition();       
-
-            thisState = QLearningManager.Instance.QLearningInstance.GetState(headTransform, segmentTransforms, foodTransform);
-
-            if (QLearning.qTable.ContainsKey(thisState))
-            {
-                thisAction = GetAction(thisState);
-
-                ExecuteAction(thisAction);
-
-                nextState = QLearningManager.Instance.QLearningInstance.SimulateActionAndGetNextState(thisState, thisAction);
-                CalculateReward(thisState);
-
-                QLearningManager.Instance.QLearningInstance.UpdateQValue(thisState, thisAction, reward, nextState, 1.5f, 1.7f);
-
-                // Debug.Log the qTable contents
-                DebugQTable();
-            }
-            else
-            {
-                Debug.LogWarning("Current state not found in Q-table.");
-            }
-        }
     }
 
     void DebugQTable()

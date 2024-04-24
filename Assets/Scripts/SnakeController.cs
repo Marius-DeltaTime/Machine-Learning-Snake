@@ -17,6 +17,9 @@ public class SnakeController : MonoBehaviour
 
     public float moveDelay = 0.1f;
 
+    public delegate void MovementEnabledEventHandler();
+    public static event MovementEnabledEventHandler MovementEnabled;
+
     void Awake()
     {
         if (instance == null)
@@ -102,7 +105,17 @@ public class SnakeController : MonoBehaviour
 
         canMove = false;
         Invoke("EnableMovement", moveDelay);
+        InvokeMovementEnabled();
     }
+
+    private void InvokeMovementEnabled()
+    {
+        if (MovementEnabled != null)
+        {
+            MovementEnabled.Invoke();
+        }
+    }
+
 
     private void HandleInput()
     {
