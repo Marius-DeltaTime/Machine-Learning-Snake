@@ -38,37 +38,121 @@ public class QLearning
         return actions;
     }
 
-    public void UpdateQValue(State state, SnakeLearning.SnakeAction action, float reward, State nextState, float alpha, float gamma)
+    public void UpdateQValue(State state, SnakeLearning.SnakeAction action, float reward, State nextState, float alpha, float gamma, Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>> dictionary)
     {
-        string currentStateInfo = "Current State:";
-        currentStateInfo += "\n\tHead Position: " + state.HeadPosition;
-        currentStateInfo += "\n\tHead Rotation: " + state.HeadRotation.eulerAngles;
-        currentStateInfo += "\n\tBody Positions:";
+        // Initialize debug information string
+        string debugInfo = "";
+
+        debugInfo += "------BEFORE------";
+        debugInfo += "\n\n";
+
+        // Print current state and action information
+        debugInfo += "Current State:";
+        debugInfo += "\n\tHead Position: " + state.HeadPosition;
+        debugInfo += "\n\tHead Rotation: " + state.HeadRotation.eulerAngles;
+        debugInfo += "\n\tBody Positions:";
         for (int i = 0; i < state.BodyPositions.Count; i++)
         {
-            currentStateInfo += "\n\t\tPosition: " + state.BodyPositions[i] + ", Rotation: " + state.BodyRotations[i].eulerAngles;
+            debugInfo += "\n\t\tPosition: " + state.BodyPositions[i] + ", Rotation: " + state.BodyRotations[i].eulerAngles;
         }
-        currentStateInfo += "\n\tFood Position: " + state.FoodTransform.position;
-        currentStateInfo += "\n\tAction: " + action.ToString();
-        currentStateInfo += "\n\tReward: " + reward;
+        debugInfo += "\n\tFood Position: " + state.FoodTransform.position;
+        debugInfo += "\n\tAction: " + action.ToString();
+        debugInfo += "\n\tReward: " + reward;
 
-        string nextStateInfo = "Next State:";
-        nextStateInfo += "\n\tHead Position: " + nextState.HeadPosition;
-        nextStateInfo += "\n\tHead Rotation: " + nextState.HeadRotation.eulerAngles;
-        nextStateInfo += "\n\tBody Positions:";
+        debugInfo += "\n\n";
+
+        // Print Next state and action information
+        debugInfo += "Next State:";
+        debugInfo += "\n\tHead Position: " + nextState.HeadPosition;
+        debugInfo += "\n\tHead Rotation: " + nextState.HeadRotation.eulerAngles;
+        debugInfo += "\n\tBody Positions:";
         for (int i = 0; i < nextState.BodyPositions.Count; i++)
         {
-            nextStateInfo += "\n\t\tPosition: " + nextState.BodyPositions[i] + ", Rotation: " + nextState.BodyRotations[i].eulerAngles;
+            debugInfo += "\n\t\tPosition: " + nextState.BodyPositions[i] + ", Rotation: " + nextState.BodyRotations[i].eulerAngles;
         }
-        nextStateInfo += "\n\tFood Position: " + nextState.FoodTransform.position;
-        nextStateInfo += "\n\tReward: " + reward;
+        debugInfo += "\n\tFood Position: " + nextState.FoodTransform.position;
+        debugInfo += "\n\tAction: " + action.ToString();
+        debugInfo += "\n\tReward: " + reward;
 
-        Debug.Log("This: " + currentStateInfo + "\nNext: " + nextStateInfo);
+        // Append separator
+        debugInfo += "\n\n";
 
-        float currentQValue = qTable[state][action];
+        // Append qTable entries
+        debugInfo += "qTable:";
+        foreach (var entry in qTable)
+        {
+            debugInfo += "\nState: " + entry.Key + ", Q-Values: " + string.Join(", ", entry.Value.Select(kv => kv.Key + ": " + kv.Value));
+        }
+
+        // Append separator
+        debugInfo += "\n\n";
+
+        // Append futureQTable entries
+        debugInfo += "futureQTable:";
+        foreach (var entry in futureQTable)
+        {
+            debugInfo += "\nState: " + entry.Key + ", Q-Values: " + string.Join(", ", entry.Value.Select(kv => kv.Key + ": " + kv.Value));
+        }
+
+        // Update Q-value calculation
+        float currentQValue = dictionary[state][action];
         float maxNextQValue = futureQTable[nextState].Values.Max();
         float newQValue = currentQValue + alpha * (reward + gamma * maxNextQValue - currentQValue);
-        qTable[state][action] = newQValue;
+        dictionary[state][action] = newQValue;
+
+        debugInfo += "\n\n";
+        debugInfo += "------AFTER------";
+        debugInfo += "\n\n";
+
+        // Print current state and action information
+        debugInfo += "Current State:";
+        debugInfo += "\n\tHead Position: " + state.HeadPosition;
+        debugInfo += "\n\tHead Rotation: " + state.HeadRotation.eulerAngles;
+        debugInfo += "\n\tBody Positions:";
+        for (int i = 0; i < state.BodyPositions.Count; i++)
+        {
+            debugInfo += "\n\t\tPosition: " + state.BodyPositions[i] + ", Rotation: " + state.BodyRotations[i].eulerAngles;
+        }
+        debugInfo += "\n\tFood Position: " + state.FoodTransform.position;
+        debugInfo += "\n\tAction: " + action.ToString();
+        debugInfo += "\n\tReward: " + reward;
+
+        debugInfo += "\n\n";
+
+        // Print Next state and action information
+        debugInfo += "Next State:";
+        debugInfo += "\n\tHead Position: " + nextState.HeadPosition;
+        debugInfo += "\n\tHead Rotation: " + nextState.HeadRotation.eulerAngles;
+        debugInfo += "\n\tBody Positions:";
+        for (int i = 0; i < nextState.BodyPositions.Count; i++)
+        {
+            debugInfo += "\n\t\tPosition: " + nextState.BodyPositions[i] + ", Rotation: " + nextState.BodyRotations[i].eulerAngles;
+        }
+        debugInfo += "\n\tFood Position: " + nextState.FoodTransform.position;
+        debugInfo += "\n\tAction: " + action.ToString();
+        debugInfo += "\n\tReward: " + reward;
+
+        // Append separator
+        debugInfo += "\n\n";
+
+        // Append qTable entries
+        debugInfo += "qTable:";
+        foreach (var entry in qTable)
+        {
+            debugInfo += "\nState: " + entry.Key + ", Q-Values: " + string.Join(", ", entry.Value.Select(kv => kv.Key + ": " + kv.Value));
+        }
+
+        // Append separator
+        debugInfo += "\n\n";
+
+        // Append futureQTable entries
+        debugInfo += "futureQTable:";
+        foreach (var entry in futureQTable)
+        {
+            debugInfo += "\nState: " + entry.Key + ", Q-Values: " + string.Join(", ", entry.Value.Select(kv => kv.Key + ": " + kv.Value));
+        }
+
+        Debug.Log(debugInfo);
     }
 
     public State GetState(Vector3 headPos, Quaternion headRotaton, List<Vector3> bodyPositions, List<Quaternion> bodyRotations, Transform food, Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>> dictionary, List<State> stateList)
@@ -175,6 +259,8 @@ public class QLearning
         }
 
         State simulatedState = new State(simulatedHeadPosition, simulatedHeadRotation, simulatedBodyPositions, simulatedBodyRotations, currentState.FoodTransform);
+
+        GetState(simulatedHeadPosition, simulatedHeadRotation, simulatedBodyPositions, simulatedBodyRotations, currentState.FoodTransform, futureQTable, futureStates);
 
         return simulatedState;
     }

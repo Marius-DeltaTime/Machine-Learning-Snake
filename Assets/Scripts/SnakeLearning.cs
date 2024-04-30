@@ -7,11 +7,6 @@ using Sirenix.OdinInspector;
 
 public class SnakeLearning : MonoBehaviour
 {
-    [ShowInInspector]
-    [ReadOnly]
-    [FoldoutGroup("Q-Table")]
-    public Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>> qTableRef = new Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>>();
-
     public static SnakeLearning instance;
 
     public enum SnakeAction { DoNothing, TurnRight, TurnLeft }
@@ -26,31 +21,10 @@ public class SnakeLearning : MonoBehaviour
     private Transform foodTransform;
     private Vector3 headPosition;
     private Quaternion headRotation;
-    private float reward;
     private State thisState, nextState;
     private SnakeAction thisAction, nextAction;
     private uint foodEaten;
     private uint aliveScore;
-
-    void Awake()
-    {
-        qTableRef = QLearning.qTable;
-        if (instance == null)
-            instance = this;
-        else if (instance != this)
-            Destroy(gameObject);
-    }
-
-    void CalculateTimeScore()
-    {
-        /*
-        float timeElapsed = Time.time - startTime;
-        float timeSinceLastReward = Time.time - lastRewardTime;
-        long millisecondsAlive = (long)(timeElapsed * 1000);
-        timeScore = (long)(millisecondsAlive * 0.00001);
-        // I can change this to just increment a score everytime the invoke movement event triggers.
-        */
-    }
 
     void GetSnakeHeadPosition()
     {
@@ -93,20 +67,15 @@ public class SnakeLearning : MonoBehaviour
         GetFoodPosition();
 
         thisState = QLearningManager.Instance.QLearningInstance.GetState(headPosition, headRotation, bodyPositions, bodyRotations, foodTransform, QLearning.qTable, QLearning.states);
+        nextState = QLearningManager.Instance.QLearningInstance.SimulateActionAndGetNextState(thisState, nextAction);
 
         if (QLearning.qTable.ContainsKey(thisState))
         {
-            thisAction = GetAction(thisState);
+            CalculateReward(thisState, QLearning.qTable);
+            CalculateReward(nextState, QLearning.futureQTable);
+            thisAction = GetBestAction(thisState, nextState);
 
             ExecuteAction(thisAction);
-
-            nextState = QLearningManager.Instance.QLearningInstance.GetState(headPosition, headRotation, bodyPositions, bodyRotations, foodTransform, QLearning.futureQTable, QLearning.futureStates);
-            nextState = QLearningManager.Instance.QLearningInstance.SimulateActionAndGetNextState(thisState, thisAction);
-
-            CalculateReward(thisState);
-            CalculateReward(nextState);
-
-            QLearningManager.Instance.QLearningInstance.UpdateQValue(thisState, thisAction, reward, nextState, 1.5f, 1.7f);
         }
         else
         {
@@ -126,42 +95,57 @@ public class SnakeLearning : MonoBehaviour
         QLearningManager.Instance.QLearningInstance.InitializeQTable(QLearning.states, QLearning.qTable);
         QLearningManager.Instance.QLearningInstance.InitializeQTable(QLearning.futureStates, QLearning.futureQTable);
 
-        startTime = Time.time;
-        lastRewardTime = startTime;
+        //startTime = Time.time;
+        //lastRewardTime = startTime;
 
         GetBodyPositions();
         GetSnakeHeadPosition();
         GetFoodPosition();
 
         thisState = QLearningManager.Instance.QLearningInstance.GetState(headPosition, headRotation, bodyPositions, bodyRotations, foodTransform, QLearning.qTable, QLearning.states);
-        nextState = QLearningManager.Instance.QLearningInstance.GetState(headPosition, headRotation, bodyPositions, bodyRotations, foodTransform, QLearning.futureQTable, QLearning.futureStates);
+        nextState = QLearningManager.Instance.QLearningInstance.SimulateActionAndGetNextState(thisState, nextAction);
+        //nextState = QLearningManager.Instance.QLearningInstance.GetState(headPosition, headRotation, bodyPositions, bodyRotations, foodTransform, QLearning.futureQTable, QLearning.futureStates);
     }
 
-    void Update()
-    {
-        CalculateTimeScore();
-    }
-
-    SnakeAction GetAction(State state)
+    SnakeAction GetBestAction(State state, State nextState)
     {
         SnakeAction bestAction = SnakeAction.DoNothing;
         float bestQValue = float.MinValue;
+        float epsilon = 1f; // Exploration rate (adjust as needed)
 
-        if (QLearning.qTable.ContainsKey(state))
+        if (QLearning.qTable.ContainsKey(state) && QLearning.futureQTable.ContainsKey(nextState))
         {
+            Dictionary<SnakeAction, float> currentQValues = QLearning.qTable[state];
+            Dictionary<SnakeAction, float> futureQValues = QLearning.futureQTable[nextState];
+
             foreach (var action in Enum.GetValues(typeof(SnakeAction)))
             {
-                float qValue = QLearning.qTable[state][(SnakeAction)action];
-                if (qValue > bestQValue)
+                SnakeAction currentAction = (SnakeAction)action;
+                float currentQValue = currentQValues[currentAction];
+                float futureQValue = futureQValues[currentAction];
+
+                // Calculate action Q-value as a combination of current and future Q-values
+                float actionQValue = (1 - epsilon) * currentQValue + epsilon * futureQValue;
+
+                // Choose the action with the highest Q-value
+                if (actionQValue > bestQValue)
                 {
-                    bestQValue = qValue;
-                    bestAction = (SnakeAction)action;
+                    bestQValue = actionQValue;
+                    bestAction = currentAction;
                 }
+
+                // Debugging information
+                Debug.Log($"Action: {currentAction}, Current Q-value: {currentQValue}, Future Q-value: {futureQValue}, Action Q-value: {actionQValue}, Best Action: {bestAction}, Best Q-value: {bestQValue}");
             }
+        }
+        else
+        {
+            Debug.LogWarning($"Either current state ({state}) or future state ({nextState}) is not found in qTable or futureQTable.");
         }
 
         return bestAction;
     }
+
 
     void ExecuteAction(SnakeAction action)
     {
@@ -183,10 +167,10 @@ public class SnakeLearning : MonoBehaviour
         return Vector3.Distance(position1, position2);
     }
 
-    void CalculateReward(State state)
+    void CalculateReward(State state, Dictionary<State, Dictionary<SnakeLearning.SnakeAction, float>> dictionary)
     {
         float distanceToFood = CalculateDistance(state.HeadPosition, state.FoodTransform.position);
-
+        //Debug.Log(state.HeadPosition + " " + state.FoodTransform.position + " " + distanceToFood);
         float maxReward = 1f;
         float minReward = 0.0f;
         float maxDistance = 10.0f;
@@ -194,22 +178,16 @@ public class SnakeLearning : MonoBehaviour
         float currentReward = Mathf.Lerp(maxReward, minReward, distanceToFood / maxDistance);
 
         // Calculate the reward based on conditions
-        reward = currentReward + aliveScore;
+        //float totalReward = currentReward + aliveScore;
+        float totalReward = currentReward;
 
-        // Apply the reward to the Q-value for the current state-action pair
-        if (IsCollidingWithBody(state))
+        // Update the Q-values for all possible actions in the next state
+        foreach (SnakeAction action in Enum.GetValues(typeof(SnakeAction)))
         {
-            QLearningManager.Instance.QLearningInstance.UpdateQValue(state, thisAction, reward - collisionPenalty, nextState, 1.5f, 1.7f);
-        }
-        else if (IsHeadAtFoodPosition(state))
-        {
-            QLearningManager.Instance.QLearningInstance.UpdateQValue(state, thisAction, reward + foodReward, nextState, 1.5f, 1.7f);
-        }
-        else
-        {
-            QLearningManager.Instance.QLearningInstance.UpdateQValue(state, thisAction, reward, nextState, 1.5f, 1.7f);
+            QLearningManager.Instance.QLearningInstance.UpdateQValue(state, action, totalReward, nextState, 0.2f, 0.5f, dictionary);
         }
     }
+
 
     bool IsCollidingWithBody(State state)
     {
@@ -240,6 +218,6 @@ public class SnakeLearning : MonoBehaviour
 
     public void OnCollisionWithBody()
     {
-        reward += collisionPenalty;
+        //reward += collisionPenalty;
     }
 }
