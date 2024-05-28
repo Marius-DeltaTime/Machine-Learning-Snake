@@ -16,8 +16,7 @@ public class QLearning
 
     public void InitializeQTable()
     {
-        // Note: In a real scenario, we would dynamically populate this based on observed states.
-        // Here, we assume a fixed set of initial states for demonstration purposes.
+        // Here, we assume a fixed set of initial states.
 
         List<Vector3> possibleHeadPositions = GetPossiblePositions();
         List<Vector3> possibleFoodPositions = GetPossiblePositions();
@@ -41,7 +40,7 @@ public class QLearning
 
     private List<Vector3> GetPossiblePositions()
     {
-        // Dummy implementation: Populate with all grid positions within a certain range.
+        // Populate with all grid positions within a certain range.
         List<Vector3> positions = new List<Vector3>();
         for (int x = -10; x <= 10; x++)
         {
@@ -55,7 +54,7 @@ public class QLearning
 
     private List<List<Vector3>> GetPossibleBodyConfigurations()
     {
-        // Dummy implementation: Return a small set of body configurations for simplicity.
+        // Return a small set of body configurations for simplicity.
         return new List<List<Vector3>>()
         {
             new List<Vector3> { new Vector3(0, 0, 0), new Vector3(0, -1, 0) },
