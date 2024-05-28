@@ -3,221 +3,89 @@ using System.Collections.Generic;
 
 public class SnakeController : MonoBehaviour
 {
-    public static SnakeController instance;
+    public Transform snakeHead;
+    public GameObject snakeSegmentPrefab;
+    public Transform food;
+    public List<Transform> snakeSegments = new List<Transform>();
+    private Vector2 direction = Vector2.right;
+    private bool moveFlag = false;
 
-    public float rotationAngle = 90f;
-    public GameObject foodPrefab;
-    public GameObject segmentPrefab;
-    public float distanceFromHead;
-
-    private Vector2 moveDirection = Vector2.up;
-    private List<Transform> segments = new List<Transform>();
-    private Quaternion headRotation = Quaternion.identity;
-    public bool canMove = true;
-
-    public float moveDelay = 0.1f;
-
-    public delegate void MovementEnabledEventHandler();
-    public static event MovementEnabledEventHandler MovementEnabled;
-
-    void Awake()
+    void Start()
     {
-        if (instance == null)
-            instance = this;
-        else if (instance != this)
-            Destroy(gameObject);
-    }
-
-    private void Start()
-    {
+        snakeSegments.Add (snakeHead);
         AddSegment();
         AddSegment();
         AddSegment();
     }
 
-    private void Update()
+    void Update()
     {
-        if (canMove)
-        {
-            MoveSnake();
-        }
-
         HandleInput();
-        RotateSnakeBody();
+        if (moveFlag) MoveSnake();
     }
 
-    private void MoveSnake()
+    void HandleInput()
     {
-        Vector3 newPosition = transform.position + (Vector3)moveDirection * 0.25f;
-        transform.position = newPosition;
-
-        Vector3 position = transform.position;
-        float screenWidth = Camera.main.orthographicSize * Camera.main.aspect;
-        float screenHeight = Camera.main.orthographicSize;
-
-        if (position.x > screenWidth)
-        {
-            position.x = -screenWidth;
-        }
-        else if (position.x < -screenWidth)
-        {
-            position.x = screenWidth;
-        }
-
-        if (position.y > screenHeight)
-        {
-            position.y = -screenHeight;
-        }
-        else if (position.y < -screenHeight)
-        {
-            position.y = screenHeight;
-        }
-
-        transform.position = position;
-
-        for (int i = segments.Count - 1; i > 0; i--)
-        {
-            segments[i].position = segments[i - 1].position;
-        }
-
-        if (segments.Count > 0)
-        {
-            Vector3 offset = Vector3.zero;
-            if (moveDirection == Vector2.up)
-            {
-                offset = new Vector3(0, -0.25f, 0);
-            }
-            else if (moveDirection == Vector2.down)
-            {
-                offset = new Vector3(0, 0.25f, 0);
-            }
-            else if (moveDirection == Vector2.right)
-            {
-                offset = new Vector3(-0.25f, 0, 0);
-            }
-            else if (moveDirection == Vector2.left)
-            {
-                offset = new Vector3(0.25f, 0, 0);
-            }
-
-            segments[0].position = transform.position + offset;
-        }
-
-        canMove = false;
-        Invoke("EnableMovement", moveDelay);
-        InvokeMovementEnabled();
-    }
-
-    private void InvokeMovementEnabled()
-    {
-        if (MovementEnabled != null)
-        {
-            MovementEnabled.Invoke();
-        }
-    }
-
-    private void HandleInput()
-    {
-        if (canMove && (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.LeftArrow)))
-        {
-            if (Input.GetKeyDown(KeyCode.RightArrow))
-            {
-                RotateSnakeClockwise();
-            }
-            else if (Input.GetKeyDown(KeyCode.LeftArrow))
-            {
-                RotateSnakeCounterClockwise();
-            }
-        }
-    }
-
-    private void EnableMovement()
-    {
-        canMove = true;
-    }
-
-    public void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.CompareTag("Snake_Body"))
-        {
-            GameManager.instance.EndGame();
-        }
-        else if (other.CompareTag("Food"))
-        {
-            Destroy(other.gameObject);
-            GameManager.instance.SpawnFood();
-            ScoreManager.instance.IncreaseScore(10);
-            AddSegment();
-            //Invoke("UpdateFoodPosition", 0.0001f);
-        }
+        if (Input.GetKeyDown(KeyCode.UpArrow) && direction != Vector2.down) direction = Vector2.up;
+        else if (Input.GetKeyDown(KeyCode.DownArrow) && direction != Vector2.up) direction = Vector2.down;
+        else if (Input.GetKeyDown(KeyCode.LeftArrow) && direction != Vector2.right) direction = Vector2.left;
+        else if (Input.GetKeyDown(KeyCode.RightArrow) && direction != Vector2.left) direction = Vector2.right;
     }
 
     public void RotateSnakeClockwise()
     {
-        headRotation *= Quaternion.Euler(0, 0, -rotationAngle);
-        transform.Rotate(Vector3.forward, -rotationAngle);
-        moveDirection *= Quaternion.Euler(0, 0, -rotationAngle) * moveDirection;
+        RotateSnake(-90f);
     }
 
     public void RotateSnakeCounterClockwise()
     {
-        headRotation *= Quaternion.Euler(0, 0, rotationAngle);
-        transform.Rotate(Vector3.forward, rotationAngle);
-        moveDirection = Quaternion.Euler(0, 0, rotationAngle) * moveDirection;
+        RotateSnake(90f);
     }
 
-    private void RotateSnakeBody()
+    void RotateSnake(float angle)
     {
-        for (int i = 0; i < segments.Count; i++)
-        {
-            segments[i].rotation = headRotation;
-        }
+        direction = Quaternion.Euler(0, 0, angle) * direction;
+        transform.Rotate(Vector3.forward, angle);
     }
 
-    private void AddSegment()
+    void MoveSnake()
     {
-        GameObject newSegment = Instantiate(segmentPrefab);
+        Vector3 prevPosition = snakeHead.position;
+        snakeHead.Translate(direction);
 
-        if (segments.Count > 0)
+        for (int i = 1; i < snakeSegments.Count; i++)
         {
-            Vector3 newPosition = segments[segments.Count - 1].position;
-            Quaternion newRotation = segments[segments.Count - 1].rotation;
-            newSegment.transform.position = newPosition;
-            newSegment.transform.rotation = newRotation;
-        }
-        else
-        {
-            newSegment.transform.position = transform.position;
-            newSegment.transform.rotation = transform.rotation;
+            Vector3 tempPosition = snakeSegments[i].position;
+            snakeSegments[i].position = prevPosition;
+            prevPosition = tempPosition;
         }
 
-        newSegment.transform.up = -transform.up;
-        segments.Add(newSegment.transform);
-
-        GameManager.instance.UpdateSnakeSegments(segments.ToArray());
+        moveFlag = false;
     }
 
-    private void UpdateFoodPosition()
+    void OnTriggerEnter2D(Collider2D other)
     {
-        //SnakeBot.instance.UpdateSnakeHeadAndFood();
-        SnakeLearning.instance.OnFoodEaten();
+        if (other.tag == "Food")
+        {
+            Destroy(other.gameObject);
+            AddSegment();
+            UpdateFoodPosition();       
+            GameManager.instance.SpawnFood();
+            ScoreManager.instance.IncreaseScore(10);
+        }
     }
 
-    private Bounds GetBounds(GameObject obj)
+    void AddSegment()
     {
-        Renderer renderer = obj.GetComponent<Renderer>();
-        if (renderer != null)
-        {
-            return renderer.bounds;
-        }
-        else
-        {
-            Collider collider = obj.GetComponent<Collider>();
-            if (collider != null)
-            {
-                return collider.bounds;
-            }
-        }
-        return new Bounds();
+        Transform newSegment = Instantiate(snakeSegmentPrefab).transform;
+        newSegment.position = snakeSegments[snakeSegments.Count - 1].position;
+        snakeSegments.Add(newSegment);
     }
+
+    void UpdateFoodPosition()
+    {
+        food.position = new Vector3(Random.Range(-10, 10), Random.Range(-10, 10), 0);
+    }
+
+    public void TriggerMove() => moveFlag = true;
 }

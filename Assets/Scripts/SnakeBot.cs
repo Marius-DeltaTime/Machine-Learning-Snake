@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+/*using System.Collections.Generic;
 using UnityEngine;
 
 public class SnakeBot : MonoBehaviour
@@ -146,3 +146,4 @@ public class SnakeBot : MonoBehaviour
         }
     }
 }
+*/
